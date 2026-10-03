@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DAKSWOOD VPN // AUTO</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Courier New',monospace;background:#02030a;color:#00fff7;
+min-height:100vh;display:flex;align-items:center;justify-content:center;
+padding:20px;overflow-x:hidden;position:relative}
+body::before{content:'';position:fixed;inset:0;
+background-image:linear-gradient(rgba(0,255,247,.07) 1px,transparent 1px),
+linear-gradient(90deg,rgba(0,255,247,.07) 1px,transparent 1px);
+background-size:40px 40px;z-index:0}
+body::after{content:'';position:fixed;inset:0;
+background:repeating-linear-gradient(0deg,rgba(0,0,0,.2) 0,rgba(0,0,0,.2) 1px,
+transparent 1px,transparent 3px);pointer-events:none;z-index:99}
+.glow{position:fixed;width:400px;height:400px;border-radius:50%;
+filter:blur(100px);opacity:.4;z-index:0}
+.glow.a{background:#ff00c8;top:-100px;left:-100px}
+.glow.b{background:#00fff7;bottom:-100px;right:-100px}
+.box{position:relative;z-index:10;background:rgba(2,5,15,.92);
+border:2px solid #00fff7;border-radius:8px;padding:30px 25px;max-width:560px;
+width:100%;box-shadow:0 0 30px rgba(0,255,247,.5),0 0 60px rgba(255,0,200,.3);
+text-align:center}
+h1{font-size:2rem;letter-spacing:4px;color:#fff;text-transform:uppercase;
+text-shadow:0 0 8px #00fff7,0 0 20px #00fff7;margin-bottom:6px}
+h1 span{color:#ff00c8;text-shadow:0 0 8px #ff00c8,0 0 20px #ff00c8}
+.sub{font-size:.7rem;letter-spacing:5px;color:#39ff14;margin-bottom:22px;
+text-shadow:0 0 6px #39ff14}
+.sub::before{content:'> '}.sub::after{content:' <'}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;
+margin-bottom:20px;font-size:.65rem;letter-spacing:1px}
+.stat{border:1px solid rgba(0,255,247,.3);padding:8px 4px;
+background:rgba(0,255,247,.03)}
+.stat b{display:block;color:#39ff14;font-size:.9rem;margin-top:3px;
+text-shadow:0 0 6px #39ff14}
+.key{background:#000;border:1px solid rgba(255,0,200,.4);padding:16px;
+font-size:.72rem;color:#00fff7;word-break:break-all;min-height:80px;
+display:flex;align-items:center;justify-content:center;margin-bottom:18px;
+transition:.3s;line-height:1.4}
+.key.active{border-color:#39ff14;color:#39ff14;
+box-shadow:0 0 20px rgba(57,255,20,.4);text-shadow:0 0 6px #39ff14}
+.key.error{border-color:#ff3333;color:#ff3333}
+button{width:100%;padding:16px;font-family:inherit;font-size:.9rem;
+font-weight:bold;letter-spacing:3px;text-transform:uppercase;color:#02030a;
+background:linear-gradient(90deg,#00fff7,#ff00c8);border:none;cursor:pointer;
+transition:.2s;box-shadow:0 0 20px rgba(0,255,247,.5)}
+button:hover{transform:translateY(-2px);
+box-shadow:0 0 35px #00fff7,0 0 60px #ff00c8}
+button:disabled{opacity:.5;cursor:wait}
+.copy{display:none;margin-top:12px;text-align:center;font-size:.7rem;
+letter-spacing:2px;color:#00fff7;cursor:pointer;padding:8px;
+border:1px dashed rgba(0,255,247,.4)}
+.copy:hover{background:rgba(0,255,247,.1);color:#39ff14}
+.foot{margin-top:16px;font-size:.6rem;letter-spacing:3px;
+color:rgba(0,255,247,.35)}
+.foot span{color:#ff00c8}
+.blink{animation:bl 1s step-end infinite}
+@keyframes bl{50%{opacity:0}}
+@media(max-width:500px){h1{font-size:1.4rem;letter-spacing:2px}
+.box{padding:22px 16px}.stats{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="glow a"></div>
+<div class="glow b"></div>
+<div class="box">
+<h1>DAKSWOOD <span>VPN</span></h1>
+<p class="sub">AUTO NODE FETCH</p>
+<div class="stats">
+<div class="stat">SOURCE<b id="src">?</b></div>
+<div class="stat">FOUND<b id="found">0</b></div>
+<div class="stat">STATUS<b id="st">IDLE</b></div>
+</div>
+<div class="key" id="key">> нажми кнопку<span class="blink">_</span></div>
+<button id="btn">Получить ключ</button>
+<div class="copy" id="copy">[ скопировать ]</div>
+<div class="foot">HAPP · VLESS · REALITY · <span>v3.0 AUTO</span></div>
+</div>
+<script>
+var b=document.getElementById('btn'),k=document.getElementById('key'),
+c=document.getElementById('copy'),cur='',src=document.getElementById('src'),
+found=document.getElementById('found'),st=document.getElementById('st');
+
+// jsDelivr — работает напрямую, без прокси
+// Это резервные источники на случай, если основной упадёт
+var SOURCES=[
+'https://cdn.jsdelivr.net/gh/Au1rxx/free-vpn-subscriptions@main/output/v2ray-base64.txt',
+'https://cdn.statically.io/gh/Au1rxx/free-vpn-subscriptions/main/output/v2ray-base64.txt'
+];
+
+function pick(list){
+if(!list||!list.length)return null;
+var vless=list.filter(function(x){return x.indexOf('vless://')===0});
+if(!vless.length)return null;
+return vless[Math.floor(Math.random()*vless.length)];
+}
+
+async function load(){
+b.disabled=true;b.textContent='Загрузка...';
+k.className='key';k.innerHTML='> запрос к источнику<span class="blink">_</span>';
+st.textContent='LOAD';st.style.color='#ffd93b';
+
+for(var i=0;i<SOURCES.length;i++){
+src.textContent=(i+1)+'/'+SOURCES.length;
+try{
+var r=await fetch(SOURCES[i],{cache:'no-store'});
+if(!r.ok)throw new Error('HTTP '+r.status);
+var t=await r.text();
+
+// Декодируем base64 (jsDelivr отдаёт закодированный текст)
+var list=[];
+try{
+var dec=atob(t.trim());
+list=dec.split('\n').map(function(x){return x.trim()}).filter(Boolean);
+}catch(e){
+// если уже не base64 — пробуем как есть
+list=t.split('\n').map(function(x){return x.trim()}).filter(Boolean);
+}
+
+found.textContent=list.length;
+var key=pick(list);
+if(key){
+cur=key;k.textContent=key;k.className='key active';
+b.disabled=false;b.textContent='Ещё один ключ';
+c.style.display='block';
+st.textContent='OK';st.style.color='#39ff14';
+return;
+}
+}catch(e){console.log('source '+i+' fail:',e.message)}
+}
+
+k.className='key error';
+k.textContent='> источник недоступен, попробуй ещё раз';
+b.disabled=false;b.textContent='Попробовать снова';
+st.textContent='FAIL';st.style.color='#ff3333';
+}
+
+b.onclick=load;
+c.onclick=function(){
+if(!cur)return;
+navigator.clipboard.writeText(cur).then(function(){
+c.textContent='[ ✓ скопировано ]';
+setTimeout(function(){c.textContent='[ скопировать ]'},1500);
+});
+};
+</script>
+</body>
+</html>
